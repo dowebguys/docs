@@ -1,4 +1,11 @@
-<svg width="220" height="36" viewBox="0 0 220 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <text x="0" y="26" font-family="Georgia, serif" font-weight="bold" font-size="26" fill="white">NIL</text>
-  <text x="56" y="26" font-family="Georgia, serif" font-weight="bold" font-size="26" fill="#e8a020">Benchmark</text>
+<svg width="200" height="32" viewBox="0 0 200 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="2" width="4" height="24" rx="1" fill="white"/>
+  <polygon points="4,2 8,2 18,26 14,26" fill="white"/>
+  <rect x="18" y="2" width="4" height="24" rx="1" fill="white"/>
+  <rect x="28" y="2" width="4" height="24" rx="1" fill="white"/>
+  <rect x="28" y="22" width="14" height="4" rx="1" fill="white"/>
+  <rect x="0" y="29" width="46" height="2.5" rx="1" fill="#e8a020"/>
+  <g fill="#e8a020">
+    <text x="52" y="23" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="18" letter-spacing="-0.5">Benchmark</text>
+  </g>
 </svg>

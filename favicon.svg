@@ -1,6 +1,9 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="64" height="64" rx="14" fill="#0f1f38"/>
-  <text x="10" y="30" font-family="Georgia, serif" font-weight="bold" font-size="22" fill="white">NIL</text>
-  <rect x="10" y="36" width="44" height="3" rx="1.5" fill="#e8a020"/>
-  <text x="10" y="54" font-family="Georgia, serif" font-weight="bold" font-size="12" fill="#e8a020">BENCH</text>
+  <rect x="12" y="14" width="5" height="28" rx="1" fill="white"/>
+  <rect x="22" y="14" width="5" height="28" rx="1" fill="white"/>
+  <polygon points="22,14 27,14 35,42 30,42" fill="white"/>
+  <rect x="40" y="14" width="5" height="28" rx="1" fill="white"/>
+  <rect x="40" y="37" width="14" height="5" rx="1" fill="#e8a020"/>
+  <rect x="10" y="48" width="44" height="3" rx="1.5" fill="#e8a020"/>
 </svg>
