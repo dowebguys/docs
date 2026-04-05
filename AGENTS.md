@@ -1,12 +1,8 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
-> For Mintlify product knowledge (components, configuration, writing standards),
-> install the Mintlify skill: `npx skills add https://mintlify.com/docs`
-
-# Documentation project instructions
+# NIL Benchmark Documentation
 
 ## About this project
 
-- This is a documentation site built on [Mintlify](https://mintlify.com)
+- Documentation site for the NIL Benchmark platform built on [Mintlify](https://mintlify.com)
 - Pages are MDX files with YAML frontmatter
 - Configuration lives in `docs.json`
 - Run `mint dev` to preview locally
@@ -14,20 +10,24 @@
 
 ## Terminology
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+- Use "NIL" (not "N.I.L." or "nil") when referring to Name, Image, Likeness
+- Use "deal" or "agreement" interchangeably for NIL contracts
+- Use "institution" or "university" for the school entity
+- Use "athlete" not "player" or "student"
+- Use "tier" (standard/premium) not "plan" when referring to subscription level
+- Use "benchmark" for cross-institution comparisons
 
 ## Style preferences
 
-{/* Add any project-specific style rules below */}
-
 - Use active voice and second person ("you")
-- Keep sentences concise — one idea per sentence
+- Keep sentences concise
 - Use sentence case for headings
 - Bold for UI elements: Click **Settings**
 - Code formatting for file names, commands, paths, and code references
+- Use tables for endpoint documentation and field lists
 
 ## Content boundaries
 
-{/* Define what should and shouldn't be documented */}
-{/* Example: Don't document internal admin features */}
+- Document all user-facing features and API endpoints
+- Include demo account credentials for testing
+- Do not document internal implementation details that would be security-sensitive in production
