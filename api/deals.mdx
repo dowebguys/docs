@@ -1,0 +1,37 @@
+---
+title: "Deals API"
+description: "NIL agreement CRUD, verification, flagging, and CSV export."
+icon: "handshake"
+---
+
+## Endpoints
+
+### GET /api/v1/deals
+
+Paginated deal list with filters. `total_value` in response reflects the filtered set, not all deals.
+
+**Query params:** `search`, `deal_type`, `compensation_type`, `sport_id`, `deal_status`, `verification_status`, `page`, `page_size`
+
+### GET /api/v1/deals/{deal_id}
+
+Single deal detail with all fields including `contract_file_key`, `ai_extraction_data`, `ai_confidence_scores`.
+
+### POST /api/v1/deals
+
+Create a deal manually. Auto-generates `deal_code` (NIL-YYYY-XXXX). Logs an activity entry.
+
+### PUT /api/v1/deals/{deal_id}
+
+Partial update. Updatable fields: `brand_id`, `deal_type`, `compensation_type`, `total_value_usd`, `guaranteed_value_usd`, `performance_incentives_usd`, `deal_start_date`, `deal_end_date`, `deal_status`.
+
+### PATCH /api/v1/deals/{deal_id}/verify
+
+Sets `verification_status = "verified"`, records `verified_by` and `verified_at`, logs activity.
+
+### PATCH /api/v1/deals/{deal_id}/flag
+
+Sets `verification_status = "needs_review"`, logs activity.
+
+### GET /api/v1/deals/export
+
+Returns all deals as a CSV file download with headers: Deal Code, Athlete, Sport, Position, Brand, Type, Comp Type, Total Value, Guaranteed, Perf Bonus, Start, End, Status, Verification.

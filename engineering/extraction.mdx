@@ -1,0 +1,72 @@
+---
+title: "PDF Extraction Engine"
+description: "How the real extraction service reads contracts and extracts structured deal fields."
+icon: "wand-magic-sparkles"
+---
+
+## Architecture
+
+The extraction service (`backend/app/services/extraction/real.py`) runs entirely locally — no external API calls, no OpenAI dependency.
+
+```
+Upload PDF → MinIO storage → Download bytes → pdfplumber parse → Regex NLP → Structured output
+```
+
+## Pipeline Steps
+
+### 1. File Retrieval
+
+The service downloads the file from MinIO using the `file_key` returned during upload.
+
+### 2. Text Extraction
+
+**PDF files**: Uses `pdfplumber.open()` to extract text from each page. Falls back to raw UTF-8 decode for non-standard PDFs (scanned docs, malformed headers).
+
+**DOCX files**: Uses `python-docx` to iterate paragraphs.
+
+### 3. Field Extraction
+
+Each field uses a specialized extraction function:
+
+| Field | Method | Confidence Logic |
+|-------|--------|-----------------|
+| **Brand** | Exact match against 20+ known brands (Nike, Adidas, etc.) | 95% if exact, 70% if fuzzy regex near "sponsor/brand/company" |
+| **Deal type** | Regex classifiers for each type (endorsement, social_media, appearance, licensing, camp_clinic) | 60-95% based on keyword match count ratio |
+| **Comp type** | Regex classifiers (cash, product, equity, revenue_share, mixed) | 55-90%, defaults to "cash" at 55% if dollar amounts found |
+| **Total value** | `$X,XXX.XX` pattern matching + labeled amounts near "total/value/amount" | 95% if found |
+| **Guaranteed** | Labeled amount near "guaranteed/base/fixed" | 90% if labeled, 70% if inferred as 80% of total |
+| **Performance** | Labeled amount near "performance/bonus/incentive" | 85% if labeled, 50% if inferred |
+| **Start date** | Multi-format date parser with context ("start/effective/commence") | 95% if labeled, 85% if positional |
+| **End date** | Multi-format date parser with context ("end/expire/terminate") | 92% if labeled, 75% if positional |
+
+### 4. Output
+
+```json
+{
+  "fields": { "brand_name": "Nike", "deal_type": "endorsement", ... },
+  "confidence_scores": { "brand_name": 0.95, "deal_type": 0.81, ... },
+  "raw_text": "First 1000 characters of extracted text...",
+  "extraction_method": "pdf_nlp"
+}
+```
+
+The `raw_text` is sanitized to remove control characters that would break JSON serialization.
+
+## Known Brands (pattern matching)
+
+Nike, Adidas, Under Armour, Gatorade, Beats by Dre, Oakley, Red Bull, Fanatics, EA Sports, Topps, State Farm, Chick-fil-A, Raising Cane's, Barstool Sports, BODYARMOR, New Balance, Puma, Coca-Cola, Pepsi, Jordan, Reebok, Monster Energy
+
+## Date Formats Supported
+
+- `2025-08-01` (ISO)
+- `08/01/2025` (US)
+- `August 1, 2025` (long)
+- `1 August 2025` (international)
+
+## Extending the Extractor
+
+To add a new known brand, add it to `KNOWN_BRANDS` in `real.py`.
+
+To add a new deal type, add a regex pattern to `DEAL_TYPE_PATTERNS`.
+
+To integrate an LLM (e.g., OpenAI) for higher accuracy, implement a new class extending `BaseExtractionService` and swap it in `upload.py:get_extraction_service()`.

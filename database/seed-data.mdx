@@ -1,0 +1,59 @@
+---
+title: "Seed Data"
+description: "What the demo database contains and how it's generated."
+icon: "seedling"
+---
+
+## Overview
+
+The seed script (`backend/app/seed.py`) runs automatically on first startup when `SEED_DB=true`. It's idempotent — skips if data already exists.
+
+## What Gets Seeded
+
+| Entity | Count | Details |
+|--------|-------|---------|
+| Conferences | 10 | SEC, ACC, Big Ten, Big 12, Pac-12, AAC, Mountain West, Sun Belt, MAC, Conference USA |
+| Universities | 17 | Blue Mountain State (demo school) + 16 real schools (Alabama, Georgia, Ohio State, etc.) |
+| Sports | 6 | Football, Basketball (M), Basketball (W), Baseball, Track & Field, Soccer (W) |
+| Positions | ~32 | 10 Football, 5 Basketball, 8 Baseball, 5 Track, 4 Soccer |
+| Brands | 20 | Nike, Adidas, Under Armour, Gatorade, Red Bull, State Farm, etc. |
+| Athletes | 2,320 | ~190 per university, distributed across sports |
+| NIL Deals | 1,852 | Realistic values by sport/position, 60% of BMS athletes get deals |
+| Budget Allocations | 6 | One per BMS sport with realistic caps |
+| Reporting Periods | 51 | 3 per university (2023-24 closed, 2024-25 closed, 2025-26 open) |
+| Users | 5 | Admin (premium), 2 Agreement Managers, 2 Read Only |
+| Activity Logs | ~62 | Deal uploads, verifications, certifications, expiry alerts |
+| Athlete Notes | ~10 | Internal staff notes on BMS athletes |
+| Contract Files | 6 | Placeholder PDFs uploaded to MinIO |
+
+## Deal Value Distributions
+
+The seed generates deals with sport-appropriate value ranges:
+
+| Sport / Position | Value Range |
+|-----------------|-------------|
+| Football — QB | $50,000 – $500,000 |
+| Football — WR, RB | $20,000 – $200,000 |
+| Football — Other | $10,000 – $120,000 |
+| Basketball (M/W) | $15,000 – $200,000 |
+| Baseball | $5,000 – $80,000 |
+| Track, Soccer | $3,000 – $40,000 |
+
+BMS Football QBs are guaranteed at least 2 deals each to ensure compelling benchmark data.
+
+## Demo Users
+
+| Name | Email | Role | Tier | Purpose |
+|------|-------|------|------|---------|
+| Admin User | admin@bluemountain.edu | admin | premium | Full access, benchmarks visible |
+| Sarah Chen | sarah.chen@bluemountain.edu | agreement_manager | premium | Can submit/edit deals |
+| Mike Thompson | mike.t@bluemountain.edu | agreement_manager | standard | No benchmark grid access |
+| Coach Williams | coach.w@bluemountain.edu | read_only | standard | View-only |
+| Lisa Rodriguez | lisa.r@bluemountain.edu | read_only | standard | Compliance officer view |
+
+## Re-seeding
+
+```bash
+docker compose down -v    # Delete volumes (DB + MinIO)
+docker compose up --build # Recreates everything from scratch
+```

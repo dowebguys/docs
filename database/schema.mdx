@@ -1,0 +1,240 @@
+---
+title: "Database Schema"
+description: "Complete entity-relationship breakdown of all 15 PostgreSQL tables."
+icon: "database"
+---
+
+## Entity Relationship Overview
+
+```
+Conference 1──* University 1──* Athlete 1──* NilDeal *──1 Brand
+                    │                │           │
+                    │                │           ├──1 Sport
+                    │                │           ├──1 Position
+                    │                │           └──1 ReportingPeriod
+                    │                │
+                    │                ├──* AthleteNote
+                    │                └─── (activity_log via entity_id)
+                    │
+                    ├──* User
+                    ├──* ReportingPeriod
+                    ├──* BudgetAllocation
+                    └──* PeerGroup
+```
+
+## Tables
+
+### conferences
+
+The top-level organizational unit. Seeded with 10 real conferences.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | Auto-generated |
+| `name` | VARCHAR(100) | Unique. E.g., "SEC", "ACC", "Big Ten" |
+| `division` | VARCHAR(20) | Default "FBS" |
+
+### universities
+
+Each institution belongs to one conference.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `name` | VARCHAR(200) | Unique. E.g., "Blue Mountain State" |
+| `conference_id` | UUID (FK → conferences) | |
+| `division` | VARCHAR(20) | |
+| `state` | VARCHAR(2) | US state code |
+| `enrollment` | INTEGER | |
+| `athletic_budget` | NUMERIC(14,2) | Annual budget |
+
+### sports
+
+Global sport definitions shared across all universities.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `name` | VARCHAR(100) | Unique. E.g., "Football", "Basketball (M)" |
+
+**Seeded**: Football, Basketball (M), Basketball (W), Baseball, Track & Field, Soccer (W)
+
+### positions
+
+Sport-specific positions.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `sport_id` | UUID (FK → sports) | |
+| `name` | VARCHAR(100) | E.g., "Quarterback" |
+| `abbreviation` | VARCHAR(10) | E.g., "QB" |
+
+**Seeded**: 10 Football positions (QB, WR, RB, TE, OL, DB, LB, DL, K/P, S), 5 Basketball, 8 Baseball, 5 Track, 4 Soccer = ~32 total
+
+### athletes
+
+Student-athletes belonging to a university.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `university_id` | UUID (FK) | Scoping filter for all queries |
+| `sport_id` | UUID (FK) | |
+| `position_id` | UUID (FK) | |
+| `first_name` | VARCHAR(100) | |
+| `last_name` | VARCHAR(100) | |
+| `jersey_number` | INTEGER | Nullable |
+| `email` | VARCHAR(200) | |
+| `phone` | VARCHAR(20) | |
+| `class_year` | VARCHAR(20) | Freshman through Graduate |
+| `eligibility_year` | INTEGER | 1-5 |
+| `eligibility_total` | INTEGER | Default 5 |
+| `redshirt_status` | BOOLEAN | |
+| `transfer_status` | VARCHAR(50) | |
+| `athlete_code` | VARCHAR(20) | Unique. Format: ATH-00001 |
+| `is_active` | BOOLEAN | Soft delete flag |
+| `created_at` | TIMESTAMPTZ | Auto |
+| `updated_at` | TIMESTAMPTZ | Auto on update |
+
+### brands
+
+Sponsors and brand partners.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `name` | VARCHAR(200) | Unique. E.g., "Nike", "Gatorade" |
+| `industry_category` | VARCHAR(100) | E.g., "Apparel", "Beverage" |
+
+**Seeded**: 20 brands (Nike, Adidas, Under Armour, Gatorade, Red Bull, etc.)
+
+### nil_deals
+
+The central table. Every NIL agreement is a row here.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `deal_code` | VARCHAR(30) | Unique. Format: NIL-2025-0001 |
+| `athlete_id` | UUID (FK) | |
+| `university_id` | UUID (FK) | Denormalized for query performance |
+| `brand_id` | UUID (FK) | |
+| `sport_id` | UUID (FK) | |
+| `position_id` | UUID (FK) | |
+| `reporting_period_id` | UUID (FK) | |
+| `deal_type` | VARCHAR(30) | endorsement, social_media, appearance, licensing, camp_clinic |
+| `compensation_type` | VARCHAR(30) | cash, product, equity, revenue_share, mixed |
+| `total_value_usd` | NUMERIC(12,2) | |
+| `guaranteed_value_usd` | NUMERIC(12,2) | |
+| `performance_incentives_usd` | NUMERIC(12,2) | |
+| `deal_start_date` | DATE | |
+| `deal_end_date` | DATE | |
+| `deal_status` | VARCHAR(20) | active, expired, cancelled, pending |
+| `verification_status` | VARCHAR(20) | verified, pending_review, needs_review |
+| `contract_file_key` | VARCHAR(500) | S3/MinIO object key |
+| `ai_extraction_data` | JSONB | Raw AI extraction output |
+| `ai_confidence_scores` | JSONB | Per-field confidence (0.0-1.0) |
+| `submitted_by` | UUID (FK → users) | |
+| `submitted_at` | TIMESTAMPTZ | |
+| `verified_by` | UUID (FK → users) | |
+| `verified_at` | TIMESTAMPTZ | |
+| `created_at` | TIMESTAMPTZ | |
+| `updated_at` | TIMESTAMPTZ | |
+
+### reporting_periods
+
+Academic year periods for deal grouping.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `university_id` | UUID (FK) | |
+| `academic_year` | VARCHAR(20) | E.g., "2025-26" |
+| `start_date` | DATE | |
+| `end_date` | DATE | |
+| `submit_deadline` | DATE | |
+| `status` | VARCHAR(20) | open or closed |
+
+### budget_allocations
+
+Per-sport budget caps per reporting period.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `university_id` | UUID (FK) | |
+| `sport_id` | UUID (FK) | |
+| `reporting_period_id` | UUID (FK) | |
+| `annual_cap_usd` | NUMERIC(12,2) | Editable via Budget page |
+| `created_at` | TIMESTAMPTZ | |
+| `updated_at` | TIMESTAMPTZ | |
+
+### users
+
+Platform users scoped to a university.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `university_id` | UUID (FK) | |
+| `first_name` | VARCHAR(100) | |
+| `last_name` | VARCHAR(100) | |
+| `email` | VARCHAR(200) | Unique globally |
+| `password_hash` | VARCHAR(200) | bcrypt |
+| `role` | VARCHAR(30) | admin, agreement_manager, read_only |
+| `tier` | VARCHAR(20) | standard, premium |
+| `title` | VARCHAR(100) | |
+| `sport_limitations` | UUID[] | Optional sport-level access restriction |
+| `is_active` | BOOLEAN | |
+| `last_active_at` | TIMESTAMPTZ | |
+| `reset_token` | VARCHAR(200) | For forgot-password flow |
+| `reset_token_expires` | TIMESTAMPTZ | 1-hour TTL |
+| `created_at` | TIMESTAMPTZ | |
+
+### peer_groups
+
+Custom benchmark comparison groups.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `university_id` | UUID (FK) | |
+| `name` | VARCHAR(100) | E.g., "Custom Peer Group" |
+| `conference_ids` | UUID[] | Array of conference IDs to compare against |
+
+### athlete_notes
+
+Internal staff notes on athletes.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `athlete_id` | UUID (FK) | |
+| `user_id` | UUID (FK) | Who wrote it |
+| `content` | TEXT | |
+| `created_at` | TIMESTAMPTZ | |
+
+### activity_log
+
+Audit trail for all mutations.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | |
+| `university_id` | UUID (FK) | |
+| `entity_type` | VARCHAR(50) | "deal", "athlete", etc. |
+| `entity_id` | UUID | The affected record |
+| `action` | VARCHAR(50) | created, verified, flagged, etc. |
+| `details` | JSONB | Structured context (deal_code, description, etc.) |
+| `user_id` | UUID (FK) | |
+| `created_at` | TIMESTAMPTZ | |
+
+## Key Indexes
+
+All foreign key columns are indexed by SQLAlchemy. The most performance-critical queries:
+
+- `nil_deals` filtered by `university_id` + `deal_status` — covers dashboard KPIs, budget, reporting
+- `nil_deals` filtered by `sport_id` + `position_id` — covers benchmarks
+- `athletes` filtered by `university_id` + `is_active` — covers roster list
+- `activity_log` filtered by `entity_type` + `entity_id` — covers athlete detail activity

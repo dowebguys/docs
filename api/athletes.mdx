@@ -1,0 +1,53 @@
+---
+title: "Athletes API"
+description: "Roster management, athlete profiles, notes, and KPIs."
+icon: "person-running"
+---
+
+## Endpoints
+
+### GET /api/v1/athletes
+
+Paginated athlete list with SQL-level filtering. All results scoped to the authenticated user's university.
+
+**Query params:** `search`, `sport_id`, `status` (active_deal | expiring_soon), `page`, `page_size`
+
+**Key behavior**: Status filter uses SQL `EXISTS` subqueries so the `total` count accurately reflects filtered results. Pagination works correctly regardless of filter.
+
+**Response item fields:** `id`, `athlete_code`, `first_name`, `last_name`, `sport`, `position`, `jersey_number`, `eligibility_year`, `active_deals`, `total_deal_value`, `expiring_soon`, `nearest_expiry`, `deal_status`
+
+### GET /api/v1/athletes/kpis
+
+Aggregate KPIs for the athletes list header: `total_athletes`, `sport_count`, `active_deals`, `avg_deal_value`, `expiring_30d`, `expiring_7d`, `reporting_issues`.
+
+### GET /api/v1/athletes/{athlete_id}
+
+Full athlete detail with eager-loaded relationships. Returns everything needed for both the profile and edit pages.
+
+**Includes:**
+- All athlete fields + `university_name`, `conference_name` (from DB, not hardcoded)
+- `deals[]` — each with `brand_name`, `guaranteed_value`, `performance_incentives`, `contract_file_key`, `is_expiring`, `days_remaining`
+- `benchmarks` — `athlete_total`, `school_avg`, `conference_avg`, `peer_avg` with delta percentages
+- `checklist[]` — dynamic compliance items with ok/warn/error status
+- `activity_log[]` — combined deal + athlete activity entries
+- `notes[]` — internal staff notes with author names
+
+### POST /api/v1/athletes
+
+Create a new athlete. Auto-generates `athlete_code` (ATH-XXXXX). Requires admin or agreement_manager role.
+
+### PUT /api/v1/athletes/{athlete_id}
+
+Partial update. Accepts any subset of athlete fields. Converts sport_id/position_id strings to UUIDs.
+
+### DELETE /api/v1/athletes/{athlete_id}
+
+Soft delete (sets `is_active = false`). Admin only.
+
+### GET /api/v1/athletes/{athlete_id}/notes
+
+Returns all internal notes for an athlete, ordered by newest first, with author names.
+
+### POST /api/v1/athletes/{athlete_id}/notes
+
+Add a new note. Requires admin or agreement_manager role.

@@ -1,0 +1,68 @@
+---
+title: "Auth API"
+description: "Authentication, signup, and password management endpoints."
+icon: "key"
+---
+
+## Endpoints
+
+### POST /api/v1/auth/login
+
+Authenticates a user and returns a JWT access token. Sets a refresh token as an HTTP-only cookie.
+
+**Request:**
+```json
+{ "email": "admin@bluemountain.edu", "password": "password123" }
+```
+**Response:** `{ "access_token": "eyJ...", "token_type": "bearer" }`
+
+### POST /api/v1/auth/signup
+
+Creates a new institution with an admin user. Returns JWT for auto-login.
+
+**Request:**
+```json
+{
+  "institution_name": "State University",
+  "conference_id": "uuid",
+  "state": "TX",
+  "enrollment": 35000,
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "email": "jane@stateuniv.edu",
+  "password": "securepass123",
+  "title": "Athletic Director",
+  "tier": "premium"
+}
+```
+**Response:** `{ "access_token": "eyJ...", "token_type": "bearer", "university_id": "uuid", "user_id": "uuid" }`
+
+**Creates**: University + User (admin role) + default ReportingPeriod. Sends welcome email.
+
+### GET /api/v1/auth/me
+
+Returns the authenticated user's profile including role, tier, and university name.
+
+### POST /api/v1/auth/refresh
+
+Exchanges a refresh token cookie for a new access token.
+
+### POST /api/v1/auth/logout
+
+Clears the refresh token cookie.
+
+### POST /api/v1/auth/forgot-password
+
+Generates a reset token (1-hour TTL) and sends an email. Always returns success to prevent enumeration.
+
+**Request:** `{ "email": "user@school.edu" }`
+
+### POST /api/v1/auth/reset-password
+
+Validates the reset token and updates the user's password hash.
+
+**Request:** `{ "token": "...", "new_password": "newpass123" }`
+
+### GET /api/v1/auth/conferences
+
+**Public endpoint** (no auth required). Returns all conferences for the signup form dropdown.

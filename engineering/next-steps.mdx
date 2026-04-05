@@ -1,0 +1,113 @@
+---
+title: "Next Steps & Handoff"
+description: "What's built, what remains, and recommended priorities for the next engineering team."
+icon: "road"
+---
+
+## What's Complete
+
+### Core Platform (fully functional)
+- 15 frontend pages matching wireframe designs
+- 55 REST API endpoints across 11 resource groups
+- 15-table PostgreSQL schema with UUIDs, JSONB, array types
+- Real PDF extraction engine (pdfplumber + regex NLP)
+- Multi-file upload wizard with AI field detection
+- Role-based access control (admin, agreement_manager, read_only)
+- Subscription tier gating (standard, premium)
+- JWT auth with refresh tokens, forgot/reset password flow
+- Email service (console dev mode, SMTP production mode)
+- Multi-step signup creating institution + admin + reporting period
+- Budget tracking with inline cap editing
+- Deal editing via modal across multiple pages
+- Contract storage + presigned URL download via MinIO
+- Benchmarking engine with real PostgreSQL aggregations + percentiles
+- Save indicators (toast notifications) on all mutation pages
+- Docker Compose orchestration (4 services, one-command startup)
+- Comprehensive seed data (2,320 athletes, 1,852 deals, 17 universities)
+
+### Data & Analytics
+- Benchmarks computed from real DB queries (not mocked)
+- Three-way comparison: school vs conference vs peer group
+- Position-level breakdowns with guaranteed/performance splits
+- All benchmark filters functional (sport, position, eligibility year, comp type)
+- Dashboard KPIs accurately reflect active deal data
+- Budget committed spend correctly scoped to active deals only
+
+## Recommended Next Steps (Priority Order)
+
+### P0 — Production Readiness
+
+<Steps>
+  <Step title="Alembic Migrations">
+    Currently using `Base.metadata.create_all()` for table creation. Set up proper Alembic migrations for schema versioning:
+    ```bash
+    cd backend
+    alembic revision --autogenerate -m "initial schema"
+    alembic upgrade head
+    ```
+    Update `entrypoint.sh` to run `alembic upgrade head` instead of `create_all`.
+  </Step>
+  <Step title="Production Auth Security">
+    - Move JWT secret to a proper secret manager
+    - Add rate limiting on login/signup/forgot-password endpoints
+    - Add CSRF protection for cookie-based refresh tokens
+    - Remove demo credentials from LoginPage.vue
+  </Step>
+  <Step title="SMTP Configuration">
+    Configure a real SMTP provider (SendGrid, AWS SES, Resend) and set `SMTP_HOST` env vars. All email templates are already built.
+  </Step>
+  <Step title="Production Docker">
+    - Create a `Dockerfile.prod` for the frontend (build + nginx static serving)
+    - Add SSL/TLS termination (Caddy, Traefik, or cloud LB)
+    - Configure PostgreSQL with proper connection pooling
+    - Set `SEED_DB=false` in production
+  </Step>
+</Steps>
+
+### P1 — Feature Completeness
+
+| Feature | Current State | What's Needed |
+|---------|--------------|---------------|
+| **Payment integration** | Pricing page exists, tier stored on user | Integrate Stripe for plan upgrades, webhook for tier changes |
+| **Sport limitations** | `sport_limitations` UUID[] field on User | Enforce in query filters so agreement_managers only see assigned sports |
+| **Peer group management** | Configured via seed, UI shows chips | Wire add/remove buttons in Settings to `PUT /admin/peer-groups` |
+| **Athlete search in upload wizard** | Dropdown of all athletes | Add server-side search endpoint for large rosters |
+| **Password change (logged in)** | Only forgot-password flow | Add `/settings/security` page with current+new password form |
+| **Data export** | CSV export for deals | Add CSV/PDF export for benchmarks, athletes, budget |
+
+### P2 — Advanced Features
+
+| Feature | Description |
+|---------|-------------|
+| **LLM extraction upgrade** | Replace regex NLP with OpenAI/Claude API for 95%+ accuracy on unstructured contracts |
+| **Historical trending** | Store snapshots per reporting period, build period-over-period trend charts with real data |
+| **Collective reporting** | Allow NIL collectives to submit deals on behalf of universities |
+| **Agent tracking** | Track athlete agents/representatives as a separate entity |
+| **Notification system** | In-app + email notifications for expiring deals, verification due, budget alerts |
+| **Bulk operations** | Bulk verify, bulk export, bulk status change for deals |
+| **Audit log search** | Full-text search across activity log entries |
+| **Mobile app** | React Native or PWA for on-the-go deal management |
+
+### P3 — Infrastructure
+
+| Item | Description |
+|------|-------------|
+| **Testing** | Add pytest integration tests for all API endpoints, Vitest unit tests for Vue components, Playwright E2E |
+| **CI/CD** | GitHub Actions for lint, test, build, deploy |
+| **Monitoring** | Sentry for error tracking, Prometheus/Grafana for metrics |
+| **CDN** | Move MinIO to AWS S3 or Cloudflare R2 for production file storage |
+| **Caching** | Add Redis for session storage and query caching on heavy benchmark queries |
+
+## Key Files for New Engineers
+
+| File | What It Does | Start Here If... |
+|------|-------------|-------------------|
+| `backend/app/main.py` | App bootstrap, all router mounts | Understanding the API surface |
+| `backend/app/models/__init__.py` | All model imports | Understanding the data model |
+| `backend/app/seed.py` | Demo data generation | Customizing demo data |
+| `backend/app/routers/benchmarks.py` | Benchmark engine | Working on analytics |
+| `backend/app/services/extraction/real.py` | PDF extraction | Improving AI extraction |
+| `frontend/src/router/index.ts` | All routes + auth guards | Understanding page structure |
+| `frontend/src/stores/auth.ts` | Auth state + isPremium | Working on access control |
+| `frontend/src/pages/BenchmarksPage.vue` | Most complex page | Understanding frontend patterns |
+| `docker-compose.yml` | Service orchestration | DevOps / deployment |

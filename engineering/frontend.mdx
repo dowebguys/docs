@@ -1,0 +1,80 @@
+---
+title: "Frontend Architecture"
+description: "Vue 3 SPA structure, routing, state management, components, and design system."
+icon: "palette"
+---
+
+## Stack
+
+Vue 3 (Composition API) + TypeScript + Vite + Tailwind CSS 3 + TanStack Query
+
+## Directory Structure
+
+```
+frontend/src/
+├── main.ts                    # App bootstrap (Pinia, Router, VueQuery)
+├── App.vue                    # Root: AppShell if auth'd, else raw RouterView
+├── router/index.ts            # 17 routes with auth guards
+├── stores/
+│   ├── auth.ts                # User profile, JWT, isPremium, login/logout
+│   └── ui.ts                  # Mobile menu state, search query
+├── lib/
+│   ├── api.ts                 # Axios instance with Bearer interceptor + 401 redirect
+│   └── utils.ts               # cn(), formatCurrency, formatDate, daysUntil
+├── components/
+│   ├── layout/                # AppShell, TopNav, SearchBar, UserMenu
+│   └── shared/                # Reusable across pages
+│       ├── DataTable.vue      # Sortable, paginated, expandable rows
+│       ├── KpiCard.vue        # Metric + delta + subtitle
+│       ├── StatusBadge.vue    # Color-coded status pills
+│       ├── AlertStrip.vue     # Dismissible alert banner
+│       ├── DealEditModal.vue  # Full deal edit form in modal
+│       ├── ContractViewer.vue # MinIO presigned URL download modal
+│       └── SaveToast.vue      # Floating save indicator (saving/saved/error)
+└── pages/                     # 15 page components
+```
+
+## Routing
+
+Auth guard in `router/index.ts`: redirects to `/login` if no JWT in localStorage. Public routes marked with `meta: { public: true }`.
+
+| Route | Component | Auth | Notes |
+|-------|-----------|------|-------|
+| `/login` | LoginPage | No | Pre-filled demo creds |
+| `/signup` | SignupPage | No | 4-step wizard |
+| `/forgot-password` | ForgotPasswordPage | No | |
+| `/reset-password` | ResetPasswordPage | No | Token from query param |
+| `/dashboard` | DashboardPage | Yes | Default after login |
+| `/athletes` | AthletesPage | Yes | Expandable roster table |
+| `/athletes/:id` | AthleteProfilePage | Yes | Read-only analytics |
+| `/athletes/:id/edit` | AthleteDetailPage | Yes | Editable profile |
+| `/agreements` | AgreementsPage | Yes | Filterable deal list |
+| `/agreements/upload` | UploadWizardPage | Yes | Multi-file AI extraction |
+| `/benchmarks` | BenchmarksPage | Yes | Premium grid gated |
+| `/budget` | BudgetPage | Yes | Inline cap editing |
+| `/reporting` | ReportingPage | Yes | Verification queue |
+| `/settings` | SettingsPage | Yes | Admin only |
+| `/pricing` | PricingPage | Yes | Plan comparison |
+| `/search` | SearchResultsPage | Yes | Unified search |
+
+## State Management
+
+**Pinia** (`stores/auth.ts`): `user`, `token`, `isAuthenticated`, `isPremium`, `fullName`, `initials`, `login()`, `logout()`, `fetchProfile()`
+
+**TanStack Query**: All API data fetched via `useQuery` with `computed` query keys for reactivity. Mutations use `useMutation` with `onSuccess` cache invalidation.
+
+## Design System (Tailwind)
+
+```
+Navy:    #0f1f38   (primary, nav, buttons)
+Gold:    #e8a020   (accent, premium, warnings)
+Sky:     #3b82c4   (links, focus states)
+Success: #22c55e   (verified, positive deltas)
+Danger:  #ef4444   (errors, over-budget, expiring)
+Warning: #f59e0b   (pending, amber alerts)
+Background: #f7f9fc
+
+Fonts: Outfit (body), DM Serif Display (headings), DM Mono (IDs, values, labels)
+```
+
+Cards use `rounded-[10px] border-[1.5px] border-border`. Labels are `text-[10px] font-bold uppercase tracking-[0.07em]`.

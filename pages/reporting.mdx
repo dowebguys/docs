@@ -1,0 +1,49 @@
+---
+title: "Reporting"
+description: "Verification queue, policy checks, audit log, and expiring agreement tracking."
+icon: "clipboard-check"
+---
+
+## Route
+
+`/reporting` — ReportingPage.vue
+
+## Layout
+
+Two-column: main content (left) + expiring agreements sidebar (right).
+
+### Stats Row (5 metrics)
+Verified, Pending Review, Needs Review, Overdue (>7 days), Verification Rate %.
+
+### Verification Queue
+Lists all deals with `pending_review` or `needs_review` status. Each card shows:
+- Deal code + status badge
+- Athlete name, brand, sport/position, deal type
+- Issue list (missing comp type, missing end date, overdue)
+- Total value + **Verify/Resolve button**
+
+Verify button calls `PATCH /deals/:id/verify`, shows "Verifying..." loading state, triggers SaveToast on success, and refreshes both reporting and dashboard query caches.
+
+### Policy Checks
+Two columns:
+- **Critical issues** — missing compensation type, missing end date, overdue >7 days (with counts)
+- **Passing checks** — total value present, athlete linked, agreement type specified (with X/Y counts)
+
+### Audit Log
+Chronological activity entries with:
+- Colored dots (green=created/verified, blue=certification, gold=alert, red=flagged)
+- Action description, deal code, user name, timestamp
+- Filterable by action type (All, Verified, Created, Flagged)
+
+### Expiring Agreements Sidebar
+Deals expiring within 60 days with athlete name, brand, value, days remaining.
+
+## Key API Endpoints
+
+```
+GET  /reporting/stats         — Verification counts and rate
+GET  /reporting/queue         — Pending/needs-review deals with issue detection
+GET  /reporting/policy-checks — Critical issues and passing check counts
+GET  /reporting/audit-log     — Filterable activity log with pagination
+GET  /reporting/expiring      — Deals expiring within N days
+```

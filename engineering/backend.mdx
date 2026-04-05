@@ -1,0 +1,79 @@
+---
+title: "Backend Architecture"
+description: "FastAPI application structure, models, routers, services, and dependencies."
+icon: "server"
+---
+
+## Stack
+
+Python 3.12 + FastAPI + SQLAlchemy 2.0 (async) + asyncpg + Pydantic 2
+
+## Directory Structure
+
+```
+backend/app/
+├── main.py              # FastAPI app, CORS, 11 router mounts, health endpoint
+├── config.py            # Pydantic Settings from environment variables
+├── database.py          # Async engine + session factory (get_db dependency)
+├── seed.py              # Idempotent demo data seeder (2,320 athletes, 1,852 deals)
+├── models/              # 13 SQLAlchemy models
+│   ├── __init__.py      # Re-exports all models
+│   ├── conference.py    # Conference (10 seeded)
+│   ├── university.py    # University → Conference (17 seeded)
+│   ├── sport.py         # Sport (6 seeded)
+│   ├── position.py      # Position → Sport (~32 seeded)
+│   ├── athlete.py       # Athlete → University, Sport, Position
+│   ├── brand.py         # Brand (20 seeded)
+│   ├── nil_deal.py      # NilDeal — the central entity (22 columns)
+│   ├── reporting_period.py
+│   ├── budget.py        # BudgetAllocation → University, Sport, Period
+│   ├── user.py          # User with role + tier + reset_token
+│   ├── peer_group.py    # PeerGroup with conference_ids UUID array
+│   ├── activity_log.py  # ActivityLog + AthleteNote
+│   └── role.py          # Role constants (no table — string enum on User)
+├── routers/             # 11 API modules (55 endpoints total)
+│   ├── auth.py          # Login, signup, forgot/reset password, public conferences
+│   ├── dashboard.py     # KPIs, alerts, budget snapshot, expiring deals
+│   ├── athletes.py      # CRUD, KPIs, notes, full detail with benchmarks
+│   ├── deals.py         # CRUD, verify, flag, CSV export
+│   ├── upload.py        # Contract upload, AI extraction, confirm, download
+│   ├── benchmarks.py    # Summary, grid (premium), positions, filters
+│   ├── budget.py        # Overview, sports breakdown, allocation update
+│   ├── reporting.py     # Stats, queue, policy checks, audit log, expiring
+│   ├── search.py        # Unified search across athletes + deals
+│   ├── admin.py         # Users, periods, sports, peer groups, conferences
+│   └── ref.py           # Reference data dropdowns (sports, positions, brands, etc.)
+├── auth/
+│   ├── security.py      # bcrypt hash/verify, JWT create/decode
+│   └── deps.py          # get_current_user, require_role(), require_tier()
+└── services/
+    ├── email.py         # Console (dev) or SMTP (prod) email sender
+    └── extraction/
+        ├── base.py      # Abstract BaseExtractionService
+        ├── mock.py      # Random data (legacy, no longer used)
+        └── real.py      # pdfplumber + regex NLP extraction
+```
+
+## Key Patterns
+
+### Dependency Injection
+
+```python
+# Every protected endpoint uses:
+user: User = Depends(get_current_user)       # Validates JWT, loads User
+user: User = Depends(require_role("admin"))   # Also checks role
+user: User = Depends(require_tier("premium")) # Also checks subscription tier
+db: AsyncSession = Depends(get_db)            # Async DB session
+```
+
+### University Scoping
+
+Every data query filters by `user.university_id` to ensure institutions only see their own data. Benchmark queries use subqueries to scope conference and peer group data.
+
+### Async Everywhere
+
+All database operations use `async/await` with SQLAlchemy's async session via `asyncpg`. No blocking I/O in request handlers.
+
+## API Documentation
+
+FastAPI auto-generates OpenAPI docs at `http://localhost:8000/docs` (Swagger UI) and `http://localhost:8000/redoc` (ReDoc).

@@ -1,0 +1,52 @@
+---
+title: "Admin & Reference API"
+description: "User management, reporting periods, sports, peer groups, and reference data lookups."
+icon: "shield-halved"
+---
+
+## Admin Endpoints (require admin role)
+
+### Users
+```
+GET    /api/v1/admin/users            — List all users for this university
+POST   /api/v1/admin/users/invite     — Create user + send invite email
+PUT    /api/v1/admin/users/{id}       — Update role, tier, sport limitations
+DELETE /api/v1/admin/users/{id}       — Soft-deactivate (cannot remove self)
+```
+
+### Reporting Periods
+```
+GET    /api/v1/admin/periods          — List with deal counts + verification rates
+POST   /api/v1/admin/periods          — Create new period (academic_year, start/end dates, deadline)
+```
+
+### Sports
+```
+GET    /api/v1/admin/sports           — List all sports
+POST   /api/v1/admin/sports           — Add a new sport
+```
+
+### Peer Groups
+```
+GET    /api/v1/admin/peer-groups      — Current peer group with conference names
+PUT    /api/v1/admin/peer-groups      — Update peer group name + conference IDs
+```
+
+## Reference Data Endpoints (require auth, any role)
+
+These populate dropdowns across the frontend:
+
+```
+GET /api/v1/ref/sports                — All sports [{id, name}]
+GET /api/v1/ref/positions?sport_id=   — Positions filtered by sport [{id, name, abbreviation, sport_id}]
+GET /api/v1/ref/brands                — All brands [{id, name, industry_category}]
+GET /api/v1/ref/conferences           — All conferences [{id, name, division}]
+GET /api/v1/ref/periods               — Reporting periods for user's university [{id, academic_year, status}]
+```
+
+## Other
+
+```
+GET /api/v1/health                    — Returns {"status": "ok"} (no auth)
+GET /api/v1/search?q=                 — Unified search across athletes + deals
+```

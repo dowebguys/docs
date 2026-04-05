@@ -1,0 +1,39 @@
+---
+title: "Budget Tracker"
+description: "Per-sport budget caps with inline editing, utilization tracking, and over-budget alerts."
+icon: "money-bill-trend-up"
+---
+
+## Route
+
+`/budget` — BudgetPage.vue
+
+## Features
+
+### KPI Cards
+Total Annual Cap, Committed Spend (with utilization %), Available Budget (green/red), Sports Over Cap.
+
+### Total Program Bar
+Full-width progress bar showing committed vs total cap.
+
+### Sports Breakdown (Editable)
+Each sport shows a progress bar (sky blue under 80%, amber 80-100%, red over cap) with:
+- Sport name + "Over Cap" badge if applicable
+- **Clickable cap amount** — click the dollar figure to edit inline
+- Number input with Save/Cancel buttons, Enter to save, Escape to cancel
+- Calls `PUT /budget/allocations/{sport_id}` on save
+- SaveToast notification on success/error
+- Budget KPIs refresh immediately after save
+
+### Alerts
+Red banner when any sport exceeds its cap, listing each sport with the over-amount.
+
+## Key API Endpoints
+
+```
+GET  /budget/overview                — KPIs: total cap, committed, available, over-cap count
+GET  /budget/sports                  — Per-sport breakdown with caps and committed amounts
+PUT  /budget/allocations/{sport_id}  — Update annual cap (admin only)
+GET  /budget/comparison              — Conference comparison (premium)
+GET  /budget/deals                   — Paginated deal list for budget context
+```

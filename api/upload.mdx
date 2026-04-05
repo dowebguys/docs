@@ -1,0 +1,56 @@
+---
+title: "Upload & Extraction API"
+description: "Contract file upload, AI-powered field extraction, deal confirmation, and file download."
+icon: "wand-magic-sparkles"
+---
+
+## Endpoints
+
+### POST /api/v1/upload/contract
+
+Uploads a contract file (PDF/DOC/DOCX) to MinIO. Returns the storage key.
+
+**Request:** multipart/form-data with `file` field
+
+**Response:** `{ "file_key": "contracts/uuid.pdf", "filename": "Nike_contract.pdf", "size": 24500 }`
+
+### POST /api/v1/upload/extract
+
+Downloads the file from MinIO, parses it with pdfplumber, and extracts structured deal fields using regex NLP.
+
+**Query params:** `file_key`, `filename`
+
+**Response:**
+```json
+{
+  "fields": {
+    "brand_name": "Nike",
+    "deal_type": "endorsement",
+    "compensation_type": "cash",
+    "total_value_usd": 35000.0,
+    "guaranteed_value_usd": 30000.0,
+    "performance_incentives_usd": 5000.0,
+    "deal_start_date": "2025-08-01",
+    "deal_end_date": "2026-07-31"
+  },
+  "confidence_scores": {
+    "brand_name": 0.95,
+    "deal_type": 0.81,
+    "total_value_usd": 0.95
+  },
+  "raw_text": "First 1000 chars of extracted text...",
+  "extraction_method": "pdf_nlp"
+}
+```
+
+### POST /api/v1/upload/confirm
+
+Creates a NilDeal record from the user-reviewed extraction data. Stores `ai_extraction_data` and `ai_confidence_scores` as JSONB for audit trail.
+
+### GET /api/v1/upload/download
+
+Generates a presigned MinIO URL (1-hour expiry) for downloading a contract file.
+
+**Query params:** `key` (the file_key from upload)
+
+**Response:** `{ "url": "http://localhost:9000/nil-contracts/contracts/...?X-Amz-Signature=...", "filename": "Nike_contract.pdf" }`

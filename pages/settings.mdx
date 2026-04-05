@@ -1,0 +1,40 @@
+---
+title: "Settings"
+description: "User management, reporting periods, sports configuration, and peer groups."
+icon: "gear"
+---
+
+## Route
+
+`/settings` — SettingsPage.vue (Admin only)
+
+## Sections
+
+### Users & Roles
+Table of all users with name, email, role, tier, last active date, status. Actions:
+- **Invite User** — modal with name, email, title, role selection (admin/agreement_manager/read_only). Validates required fields and email format. Sends invitation email. New user inherits the inviting user's tier.
+- **Remove User** — confirm dialog, soft-deactivates the user.
+
+### Reporting Periods
+Table of academic year periods with submit deadline, deal count, verification rate, status (open/closed). Admin can create new periods.
+
+### Sports Management
+Shows all configured sports as pill chips. Admin can add new sports.
+
+### Peer Group Configuration
+Not fully wired in Settings UI yet — configured via seed data. Shows current peer group conferences (ACC, Big Ten, Big 12).
+
+## Key API Endpoints
+
+```
+GET    /admin/users         — List users for this university
+POST   /admin/users/invite  — Create user with temp password + send email
+PUT    /admin/users/:id     — Update role, tier, sport limitations
+DELETE /admin/users/:id     — Soft-deactivate user
+GET    /admin/periods       — Reporting periods with deal counts
+POST   /admin/periods       — Create new reporting period
+GET    /admin/sports        — List managed sports
+POST   /admin/sports        — Add new sport
+GET    /admin/peer-groups   — Current peer group config
+PUT    /admin/peer-groups   — Update peer group conferences
+```

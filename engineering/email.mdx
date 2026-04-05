@@ -1,0 +1,62 @@
+---
+title: "Email Service"
+description: "Console logging in development, SMTP in production. Invitation, password reset, and welcome emails."
+icon: "envelope"
+---
+
+## How It Works
+
+The email service (`backend/app/services/email.py`) has two modes:
+
+### Development Mode (default)
+
+When `SMTP_HOST` is empty (the default), all emails are printed to the backend console:
+
+```
+============================================================
+📧 EMAIL TO: admin@bluemountain.edu
+   SUBJECT: NIL Benchmark - Reset Your Password
+   BODY:
+Hello Admin,
+
+You requested a password reset...
+============================================================
+```
+
+### Production Mode
+
+Set these environment variables to enable real SMTP delivery:
+
+```env
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_TLS=true
+SMTP_USER=apikey
+SMTP_PASSWORD=SG.xxxxx
+SMTP_FROM=noreply@nilbenchmark.com
+```
+
+## Email Types
+
+| Trigger | Subject | Content |
+|---------|---------|---------|
+| User invited | "You've Been Invited" | Login URL, email, temp password |
+| Forgot password | "Reset Your Password" | Reset link with token (1-hour expiry) |
+| Password changed | "Password Changed" | Confirmation, contact admin if unexpected |
+| Signup | "Welcome to NIL Benchmark" | Institution name, plan tier, login URL |
+| Tier upgrade | "Access Granted" | New tier features description |
+
+## Adding New Email Types
+
+```python
+from app.services.email import send_email
+
+await send_email(
+    to="user@school.edu",
+    subject="NIL Benchmark - Subject",
+    body="Plain text body...",
+    html="<h1>Optional HTML body</h1>",  # optional
+)
+```
+
+Email sending is async but non-blocking — failures are logged but don't crash the request.

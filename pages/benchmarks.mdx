@@ -1,0 +1,84 @@
+---
+title: "Benchmarks"
+description: "Conference and peer group comparisons with real statistical aggregations."
+icon: "chart-bar"
+---
+
+## Route
+
+`/benchmarks` — BenchmarksPage.vue
+
+## Access
+
+- **Summary cards** — available to all tiers
+- **Benchmark grid** — Premium only (standard users see upgrade prompt)
+- **Position chart** — available to all tiers
+
+## Filter Sidebar (all functional)
+
+| Filter | Type | Effect |
+|--------|------|--------|
+| View mode | Radio group | Controls which comparison columns show (Conference / Peer / School Only) |
+| Conference | Locked display | User's conference, not editable |
+| Reporting Period | Dropdown | From `/benchmarks/filters` → `reporting_periods` |
+| Sport | Dropdown | Filters all 3 queries (summary, grid, positions) |
+| Position | Dropdown | Filtered by selected sport, narrows summary + grid |
+| Eligibility Year | Chip buttons (All, 1-5) | Filters to athletes in that year |
+| Comp Type | Chip buttons | Filters to deals with that compensation type |
+| Peer Group | Conference chips | Shows custom peer group (configured in Settings) |
+
+All filters are reactive — changing any value immediately refetches data via TanStack Query computed keys.
+
+## Summary Cards (4)
+
+Each card shows "Yours" vs "Conference Avg" with a delta percentage pill.
+
+1. **Avg NIL / Athlete** — `total_value / athletes_with_deals` for school vs conference
+2. **Avg Agreement Value** — `AVG(total_value_usd)` across filtered deals
+3. **% Athletes with Agreement** — athletes with deals / total athletes
+4. **Total NIL Value** — `SUM(total_value_usd)` for school vs conference
+
+## Benchmark Grid (Premium)
+
+Three-way comparison table: **Your School** vs **Conference** vs **Peer Group**.
+
+Each group shows Avg / Guaranteed / Performance sub-columns. Delta columns show percentage difference vs Conference and vs Peer Group.
+
+**How it's computed** (`GET /benchmarks/grid`):
+- School: `_agg()` with `university_id == user's`
+- Conference: `_agg()` with `university_id IN (same conference)`
+- Peer Group: `_agg()` with `university_id IN (universities in peer group conferences)`
+- Percentiles: PostgreSQL `percentile_cont(0.25/0.50/0.75)` on per-athlete totals
+
+## Position Bar Chart
+
+Vertical bar chart showing Avg NIL per position for the selected sport. Three bars per position (Yours / Conference / Peer) with hover tooltips showing exact values and athlete count.
+
+**Chart mode toggle** (Total / Guaranteed / Performance) changes which value drives the school bars:
+- Total → `school_avg`
+- Guaranteed → `school_avg_guaranteed`
+- Performance → `school_avg_performance`
+
+**View mode** controls which comparison bars are visible.
+
+## Backend Engine
+
+All benchmark data is computed from **real PostgreSQL aggregation queries** — no hardcoded or fake values.
+
+The `_agg()` helper function accepts `sport_id`, `position_id`, `eligibility_year`, and `comp_type` filters and applies them to every aggregation (school, conference, peer).
+
+```python
+# Example: filtered benchmark aggregation
+async def _agg(db, uni_filter, sport_id=None, position_id=None, eligibility_year=None, comp_type=None):
+    q = select(
+        func.avg(NilDeal.total_value_usd),
+        func.count(NilDeal.id),
+        func.sum(NilDeal.total_value_usd),
+        ...
+    ).where(uni_filter, NilDeal.deal_status == "active")
+    if eligibility_year:
+        q = q.join(Athlete).where(Athlete.eligibility_year == int(eligibility_year))
+    if comp_type:
+        q = q.where(NilDeal.compensation_type == comp_type)
+    ...
+```

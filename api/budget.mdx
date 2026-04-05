@@ -1,0 +1,33 @@
+---
+title: "Budget API"
+description: "Budget cap tracking, per-sport breakdowns, and allocation management."
+icon: "wallet"
+---
+
+## Endpoints
+
+### GET /api/v1/budget/overview
+
+KPIs: `total_annual_cap`, `committed_spend`, `available_budget`, `utilization_pct`, `sports_over_cap`.
+
+Committed spend uses active deals only.
+
+### GET /api/v1/budget/sports
+
+Per-sport breakdown: sport name, `annual_cap`, `committed`, `remaining`, `utilization_pct`, `is_over`.
+
+### PUT /api/v1/budget/allocations/{sport_id}
+
+**Admin only.** Set or update the annual cap for a sport.
+
+**Request:** `{ "annual_cap_usd": 5000000, "reporting_period_id": "uuid" }`
+
+Creates a new BudgetAllocation if one doesn't exist, otherwise updates.
+
+### GET /api/v1/budget/comparison
+
+Conference comparison of spending by sport (Premium feature).
+
+### GET /api/v1/budget/deals
+
+Paginated deal list filtered by sport for budget context. Returns `total_value` for the filtered set.

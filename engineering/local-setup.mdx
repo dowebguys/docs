@@ -1,0 +1,78 @@
+---
+title: "Local Development"
+description: "Setting up the development environment and working with the codebase."
+icon: "laptop-code"
+---
+
+## Prerequisites
+
+- Docker Desktop (for the full stack)
+- Node.js 22+ (if running frontend outside Docker)
+- Python 3.12+ (if running backend outside Docker)
+
+## Full Stack via Docker (Recommended)
+
+```bash
+docker compose up --build
+```
+
+This starts all 4 services with hot-reload:
+- **Backend**: uvicorn `--reload` watches `/app` for Python changes
+- **Frontend**: Vite HMR watches `/app/src` for Vue/TS changes
+- Both use volume mounts (`./backend:/app`, `./frontend:/app`) so edits are reflected instantly
+
+## Environment Variables
+
+Copy `.env.example` to `.env`. Key variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `POSTGRES_DB` | nil_benchmark | Database name |
+| `POSTGRES_USER` | nil | DB user |
+| `POSTGRES_PASSWORD` | nilpass | DB password |
+| `SECRET_KEY` | dev-secret-key... | JWT signing key |
+| `SEED_DB` | true | Auto-seed on startup |
+| `SMTP_HOST` | (empty) | Empty = console email mode |
+| `MINIO_ROOT_USER` | minioadmin | S3 storage credentials |
+
+## Useful Commands
+
+```bash
+# View logs
+docker compose logs backend -f
+docker compose logs frontend -f
+
+# Rebuild one service
+docker compose up -d --build backend
+
+# Reset everything
+docker compose down -v && docker compose up --build
+
+# Open PostgreSQL shell
+docker compose exec db psql -U nil nil_benchmark
+
+# Open MinIO console
+open http://localhost:9001   # admin: minioadmin / minioadmin
+
+# FastAPI auto-docs
+open http://localhost:8000/docs
+```
+
+## Running Outside Docker
+
+**Backend:**
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+export DATABASE_URL=postgresql+asyncpg://nil:nilpass@localhost:5432/nil_benchmark
+export DATABASE_URL_SYNC=postgresql://nil:nilpass@localhost:5432/nil_benchmark
+uvicorn app.main:app --reload --port 8000
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev   # Starts on port 3000
+```

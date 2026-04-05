@@ -1,0 +1,61 @@
+---
+title: "Authentication & Signup"
+description: "Login, multi-step signup, forgot password, and password reset flows."
+icon: "lock"
+---
+
+## Pages
+
+| Route | Page | Auth Required |
+|-------|------|--------------|
+| `/login` | LoginPage.vue | No |
+| `/signup` | SignupPage.vue | No |
+| `/forgot-password` | ForgotPasswordPage.vue | No |
+| `/reset-password?token=` | ResetPasswordPage.vue | No |
+| `/pricing` | PricingPage.vue | Yes |
+
+## Login
+
+Standard email/password form. Pre-filled with demo credentials for convenience. Links to forgot password and signup. On success, stores JWT in localStorage and fetches user profile.
+
+## Multi-Step Signup (4 steps)
+
+**Step 1 — Institution**: Institution name (unique), conference dropdown (from `GET /auth/conferences`), state, enrollment. Conference dropdown is public — no auth needed.
+
+**Step 2 — Admin Account**: First/last name, email (unique), title, password (min 8 chars) + confirm. Inline validation on every field.
+
+**Step 3 — Choose Plan**: Side-by-side Standard (Free) vs Premium ($499/mo) cards with feature lists. No credit card required — plan is stored on user's `tier` field.
+
+**Step 4 — Confirmation**: Shows institution name, plan tier, and "Go to Dashboard" button. User is auto-logged-in (JWT returned from signup endpoint).
+
+**Backend**: `POST /auth/signup` creates University + User + default ReportingPeriod in one transaction, then returns JWT.
+
+## Forgot Password
+
+1. User enters email → `POST /auth/forgot-password` generates a `secrets.token_urlsafe(32)` reset token with 1-hour expiry
+2. Email sent with reset link (console-logged in dev, SMTP in production)
+3. User clicks link → `/reset-password?token=X` page
+4. New password submitted → `POST /auth/reset-password` validates token + expiry, updates hash, clears token
+5. Confirmation email sent
+
+Always returns success to prevent email enumeration.
+
+## Pricing Page
+
+`/pricing` shows Standard vs Premium comparison with feature checklists. "Current Plan" badge on active tier. Upgrade/downgrade buttons (UI only — no payment integration yet).
+
+## JWT Token Structure
+
+```json
+{
+  "sub": "user-uuid",
+  "university_id": "uni-uuid",
+  "role": "admin",
+  "tier": "premium",
+  "exp": 1234567890,
+  "type": "access"
+}
+```
+
+- **Access token**: 15 minutes, stored in localStorage, sent as `Authorization: Bearer`
+- **Refresh token**: 7 days, HTTP-only cookie, used to get new access tokens

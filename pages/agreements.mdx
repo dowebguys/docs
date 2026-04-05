@@ -1,0 +1,56 @@
+---
+title: "NIL Agreements"
+description: "Deal list with filters, inline editing, CSV export, and contract management."
+icon: "file-contract"
+---
+
+## Route
+
+`/agreements` — AgreementsPage.vue
+
+## Layout
+
+### Header
+Title + "Export CSV" button + "Submit Agreement" button (links to upload wizard).
+
+### Summary Strip
+Shows filtered total count and filtered total dollar value.
+
+### Filter Bar
+- **Search** — matches athlete name
+- **Deal Type** — endorsement, social_media, appearance, licensing, camp_clinic
+- **Comp Type** — cash, product, mixed, equity, revenue_share
+- **Sport** — populated from `/ref/sports`
+
+All filters are reactive via TanStack Query `computed` keys — the API refetches on every change.
+
+### Deals Table (9 columns)
+Athlete (name + deal code), Sport, Type, Comp, Total (mono), Guaranteed (mono), Expires, Status (badge), Actions (edit pencil).
+
+### Actions Column
+- **Edit pencil** — opens `DealEditModal` with the deal's data pre-filled. Saves via `PUT /deals/:id`.
+
+### CSV Export
+Downloads all deals as CSV via `GET /deals/export` with browser blob download.
+
+## DealEditModal
+
+Shared component (`components/shared/DealEditModal.vue`) used on both Agreements and Athlete Detail pages:
+- Brand dropdown (from `/ref/brands`)
+- Deal type, compensation type selects
+- Guaranteed + Performance inputs with auto-calculated Total
+- Start/end date pickers
+- Status select (active/expired/cancelled/pending)
+- Save calls `PUT /deals/:id`, invalidates deal + athlete + dashboard caches
+
+## Key API Endpoints
+
+```
+GET    /deals                — Paginated with type, comp, sport, status, search filters
+GET    /deals/:id            — Single deal detail
+POST   /deals                — Create deal manually
+PUT    /deals/:id            — Update deal fields
+PATCH  /deals/:id/verify     — Mark as verified
+PATCH  /deals/:id/flag       — Flag for review
+GET    /deals/export          — CSV export
+```

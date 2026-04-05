@@ -1,0 +1,54 @@
+---
+title: "Benchmarks API"
+description: "Statistical aggregation engine for school vs conference vs peer group comparisons."
+icon: "scale-balanced"
+---
+
+## Endpoints
+
+All benchmark endpoints accept these optional filters: `sport_id`, `position_id`, `eligibility_year`, `comp_type`.
+
+### GET /api/v1/benchmarks/summary
+
+Returns 4 comparison metrics: Avg NIL per Athlete, Avg Agreement Value, % Athletes with Agreement, Total NIL Value. Each has `yours`, `conference`, and `delta` values.
+
+Available to all tiers.
+
+### GET /api/v1/benchmarks/grid
+
+**Premium only.** Three-way comparison: school vs conference vs peer group.
+
+Returns `school`, `conference`, `peer` objects each with `avg_total`, `avg_guaranteed`, `avg_performance`, `total_deals`, `total_value`. Also returns percentile data (`p25`, `p50`, `p75`) and pre-computed deltas.
+
+Uses PostgreSQL `percentile_cont()` for real statistical percentiles.
+
+### GET /api/v1/benchmarks/positions
+
+Per-position breakdown for a sport. Returns school/conference/peer averages, guaranteed/performance splits, and athlete counts per position.
+
+Sorted by school average descending.
+
+### GET /api/v1/benchmarks/filters
+
+Returns all filter options: sports, conferences, positions grouped by sport, user's locked conference, peer group conferences, reporting periods, and user tier.
+
+## How Aggregations Work
+
+The `_agg()` helper runs a single SQL query with these filters applied:
+
+```sql
+SELECT AVG(total_value_usd), AVG(guaranteed_value_usd), 
+       AVG(performance_incentives_usd), COUNT(*), SUM(total_value_usd),
+       COUNT(DISTINCT athlete_id)
+FROM nil_deals
+WHERE university_id IN (:scope) AND deal_status = 'active'
+  AND sport_id = :sport_id        -- if provided
+  AND position_id = :position_id  -- if provided
+  AND compensation_type = :comp   -- if provided
+  -- eligibility_year filter JOINs athlete table
+```
+
+Three scopes are computed:
+- **School**: `university_id = current user's university`
+- **Conference**: `university_id IN (universities in same conference)`
+- **Peer Group**: `university_id IN (universities in peer group conferences)`

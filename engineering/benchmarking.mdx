@@ -1,0 +1,77 @@
+---
+title: "Benchmarking Engine"
+description: "How statistical comparisons are computed from real database data."
+icon: "scale-balanced"
+---
+
+## Overview
+
+All benchmark data is computed from **live PostgreSQL aggregation queries** against the `nil_deals` table. No hardcoded values, no fake data.
+
+## Three Comparison Scopes
+
+| Scope | Definition | SQL Filter |
+|-------|-----------|------------|
+| **Your School** | Only your university's deals | `university_id = :current_user_university` |
+| **Conference** | All universities in your conference | `university_id IN (SELECT id FROM universities WHERE conference_id = :your_conf)` |
+| **Peer Group** | Universities in your custom peer conferences | `university_id IN (SELECT id FROM universities WHERE conference_id IN :peer_conf_ids)` |
+
+## Core Aggregation Helper
+
+The `_agg()` function runs a single SQL query with all filters applied:
+
+```python
+async def _agg(db, uni_filter, sport_id=None, position_id=None, 
+               eligibility_year=None, comp_type=None):
+    q = select(
+        func.avg(NilDeal.total_value_usd),        # Avg total
+        func.avg(NilDeal.guaranteed_value_usd),    # Avg guaranteed
+        func.avg(NilDeal.performance_incentives_usd),  # Avg performance
+        func.count(NilDeal.id),                    # Deal count
+        func.sum(NilDeal.total_value_usd),         # Total value
+        func.count(func.distinct(NilDeal.athlete_id)),  # Athletes with deals
+    ).where(uni_filter, NilDeal.deal_status == "active")
+    
+    if sport_id:
+        q = q.where(NilDeal.sport_id == uuid.UUID(sport_id))
+    if position_id:
+        q = q.where(NilDeal.position_id == uuid.UUID(position_id))
+    if comp_type:
+        q = q.where(NilDeal.compensation_type == comp_type)
+    if eligibility_year:
+        q = q.join(Athlete).where(Athlete.eligibility_year == int(eligibility_year))
+```
+
+This helper is called 3 times (school, conference, peer) for every benchmark request.
+
+## Percentile Calculations
+
+The grid endpoint uses PostgreSQL's native `percentile_cont()` function:
+
+```python
+func.percentile_cont(0.25).within_group(sub.c.athlete_total)  # 25th percentile
+func.percentile_cont(0.50).within_group(sub.c.athlete_total)  # Median
+func.percentile_cont(0.75).within_group(sub.c.athlete_total)  # 75th percentile
+```
+
+These are computed on **per-athlete totals** (SUM of all deals for each athlete), not on individual deal values.
+
+## Filter Support
+
+Every endpoint accepts and respects these filters:
+
+| Filter | Parameter | How Applied |
+|--------|-----------|-------------|
+| Sport | `sport_id` | `WHERE NilDeal.sport_id = :id` |
+| Position | `position_id` | `WHERE NilDeal.position_id = :id` |
+| Eligibility Year | `eligibility_year` | `JOIN Athlete WHERE eligibility_year = :year` |
+| Comp Type | `comp_type` | `WHERE NilDeal.compensation_type = :type` |
+
+All filters apply to **all three scopes** (school, conference, peer) simultaneously.
+
+## Data Anonymization
+
+Per the product spec, benchmarks anonymize cross-institution data:
+- Conference and peer data show only aggregated statistics (AVG, SUM, percentiles)
+- Individual university names, athlete names, and deal details are never exposed in benchmark responses
+- Only the user's own school data is identifiable

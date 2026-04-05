@@ -1,0 +1,66 @@
+---
+title: "Athletes"
+description: "Roster management with expandable rows, deal history, benchmarks, and compliance."
+icon: "users"
+---
+
+## Routes
+
+| Route | Page | Purpose |
+|-------|------|---------|
+| `/athletes` | AthletesPage.vue | Roster list with filters and expandable rows |
+| `/athletes/:id` | AthleteProfilePage.vue | Read-only analytics view (navy header, donut chart, trend) |
+| `/athletes/:id/edit` | AthleteDetailPage.vue | Editable profile with deal table, notes, sidebar |
+
+## Athletes List (`/athletes`)
+
+### KPI Row (5 cards)
+Total athletes (with sport count), active deals (green, with SEC delta), avg deal value (with conference comparison), expiring within 30 days (red), reporting issues (amber).
+
+### Status Tabs
+Pill-shaped tabs: **All** / **Active deal** / **Expiring soon** — each with live counts. Filtering happens in SQL via `EXISTS` subqueries so pagination is accurate.
+
+### Roster Table (7 columns)
+Athlete (avatar + name link + code), Sport/Pos (green pill + mono text), Status (badge), Deal value (mono), vs SEC avg (gold pill), Expires (date with urgency coloring), Chevron.
+
+### Expandable Rows (4-column grid)
+Clicking a row fetches `GET /athletes/:id` and shows:
+1. **Deal history** — mini-table with brand, type, value, Active/Expired pill per deal
+2. **Reporting** — compliance checklist with green checks and amber warnings
+3. **Documents** — clickable PDF links for contracts uploaded to MinIO
+4. **Benchmark panel** — dark navy card with gold athlete bars vs white avg bars, delta percentages, "Premium" badge
+
+### Filters
+- Text search (athlete name, code)
+- Sport dropdown (from `/ref/sports`)
+- All reactive via TanStack Query — changing any filter triggers instant refetch
+
+## Athlete Profile (`/athletes/:id`)
+
+Read-only analytics page with:
+- **Dark navy header banner** — gold avatar, white name, meta items with gold highlights, "Staff view only" badge
+- **4 KPI cards** — Total NIL (gold), Active deals, vs School avg percentage, Verification status
+- **Two-column layout**: Benchmark card (premium, with 3 comparison bar sets) + Donut chart (SVG, deal type mix) + Eligibility pips
+- **Deal history table** — 8 columns: Brand, Type pill, Guaranteed, Performance, Total, Period, Status, AI confidence bar
+- **Reporting checklist** + **Period-over-period trend chart** (3-year bars)
+
+## Athlete Detail (`/athletes/:id/edit`)
+
+Editable profile with:
+- **Profile header** — avatar, name, sport pill, stat boxes (Total NIL, Active Deals, Expiring, Verified)
+- **Form card** — 2-column grid with dropdowns for Sport, Position (filtered by sport), Eligibility Year, Transfer Status. Fields populated from `/ref/sports` and `/ref/positions`.
+- **Eligibility pips** — navy (used) / gray (remaining)
+- **NIL Agreements table** — 7 columns with edit button (opens DealEditModal), contract download (opens ContractViewer)
+- **Sidebar**: Reporting checklist (dynamic), NIL Benchmarks (premium, 3 comparison bars), Internal Notes (with Save button), Activity Log (colored dots)
+- **Sticky save bar** — highlights gold on unsaved changes, "Saving..." state, SaveToast on success/error
+
+## Key API Endpoints
+
+```
+GET  /athletes              — Paginated list with search, sport, status filters
+GET  /athletes/kpis         — KPI stats for header cards
+GET  /athletes/:id          — Full detail with deals, benchmarks, checklist, activity log, notes
+POST /athletes              — Create new athlete
+PUT  /athletes/:id          — Update athlete fields
+POST /athletes/:id/notes    — Add internal note
+```

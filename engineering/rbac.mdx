@@ -1,0 +1,63 @@
+---
+title: "RBAC & Subscription Tiers"
+description: "Role-based access control and Standard/Premium tier gating."
+icon: "user-shield"
+---
+
+## Two Dimensions of Access
+
+Every user has both a **role** (what they can do) and a **tier** (what features they can see).
+
+### Roles
+
+| Role | Can View | Can Edit | Can Admin |
+|------|----------|----------|-----------|
+| `admin` | Everything | Everything | Users, periods, sports, budgets, peer groups |
+| `agreement_manager` | Everything | Athletes, deals, notes | No |
+| `read_only` | Everything | Nothing | No |
+
+Enforced via `require_role()` FastAPI dependency:
+```python
+@router.post("", status_code=201)
+async def create_deal(user: User = Depends(require_role("admin", "agreement_manager"))):
+    ...
+```
+
+### Tiers
+
+| Tier | Features |
+|------|----------|
+| `standard` | All core features: deals, athletes, budget, reporting, upload wizard |
+| `premium` | Everything in standard + benchmark grid, peer group comparisons, conference percentiles |
+
+Enforced via `require_tier()` FastAPI dependency:
+```python
+@router.get("/grid")
+async def benchmark_grid(user: User = Depends(require_tier("premium"))):
+    ...
+```
+
+On the frontend, `auth.isPremium` computed property controls visibility:
+```vue
+<div v-if="auth.isPremium">Premium benchmark grid here</div>
+<div v-else>Upgrade prompt with link to /pricing</div>
+```
+
+### Sport Limitations
+
+Users can optionally have `sport_limitations` (UUID array) that restricts which sports they can manage. Not enforced at query level yet — designed for future implementation.
+
+## JWT Token Contents
+
+```json
+{
+  "sub": "user-uuid",
+  "university_id": "uni-uuid",
+  "role": "admin",
+  "tier": "premium",
+  "type": "access",
+  "exp": 1234567890
+}
+```
+
+The `role` and `tier` fields are included in the token but the actual enforcement loads the User from the database on every request (not from the token) to ensure changes take effect immediately.

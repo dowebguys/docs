@@ -1,0 +1,76 @@
+---
+title: "Upload Wizard"
+description: "AI-powered contract upload with real PDF extraction, multi-file support, and guided field completion."
+icon: "cloud-arrow-up"
+---
+
+## Route
+
+`/agreements/upload` — UploadWizardPage.vue
+
+## Three-Step Flow
+
+### Step 1: Upload
+
+- **Drag & drop zone** accepts multiple files (PDF, DOC, DOCX)
+- Also has a "Choose Files" button with `multiple` attribute
+- File list shows each file's name, size, and processing status
+- Files can be removed individually before processing
+- Clicking "Upload & Extract" uploads the current file to MinIO and runs AI extraction
+
+**Backend flow:**
+1. `POST /upload/contract` — streams file to MinIO bucket `nil-contracts` under `contracts/{uuid}.{ext}`
+2. `POST /upload/extract` — downloads file from MinIO, parses with pdfplumber, extracts fields via regex NLP
+
+### Step 2: Review & Complete
+
+After extraction, the page shows a form pre-filled with AI-detected values. Each field shows its confidence score:
+
+| Field | Source | Confidence Method |
+|-------|--------|-------------------|
+| Brand | Pattern match against 20+ known brands | 95% if exact match, 70% if fuzzy |
+| Deal Type | Regex classifier (endorsement, social_media, appearance, licensing, camp_clinic keywords) | 60-95% based on match count |
+| Comp Type | Regex classifier (cash, product, equity, revenue_share, mixed keywords) | 55-90% |
+| Total Value | Dollar amount parser (`$X,XXX.XX` patterns) | 95% if found, 0% if not |
+| Guaranteed | Labeled amount near "guaranteed/base/fixed" | 90% if labeled, 70% if inferred |
+| Performance | Labeled amount near "performance/bonus/incentive" | 85% if labeled, 50% if inferred |
+| Start Date | Date parser with labeled context ("start/effective/commence") | 95% if labeled, 85% if positional |
+| End Date | Date parser with labeled context ("end/expire/terminate") | 92% if labeled, 75% if positional |
+
+**Fields the user must complete** (not extractable from PDF):
+- **Athlete** — dropdown of full roster, selecting auto-fills Sport + Position
+- **Reporting Period** — auto-defaults to current open period
+- **Brand** — if AI couldn't match, user selects from dropdown (hint shows AI-detected name)
+
+A yellow alert banner lists any remaining required fields. The "Save and Verify" button is disabled until all required fields are filled.
+
+### Step 3: Confirmation
+
+Shows a summary of all confirmed deals with deal codes, athlete names, filenames, and total values. "Submit More" resets the wizard, "View All Agreements" navigates to `/agreements`.
+
+## Multi-File Processing
+
+When multiple files are dropped, after confirming each deal the wizard auto-advances to the next file and kicks off extraction automatically.
+
+## Real Extraction Engine
+
+The extraction service (`backend/app/services/extraction/real.py`) uses **pdfplumber** to read actual PDF text content and **regex pattern matching** to extract structured fields. No external API, no randomized data.
+
+**How it works:**
+1. Downloads the file bytes from MinIO
+2. Opens with `pdfplumber.open()` to extract page text
+3. Falls back to raw UTF-8 decode for non-standard PDFs
+4. Runs regex classifiers for brand, deal type, comp type
+5. Finds dollar amounts with `$X,XXX` pattern matching
+6. Parses dates in multiple formats (YYYY-MM-DD, MM/DD/YYYY, Month DD, YYYY)
+7. Looks for labeled amounts ("guaranteed: $X", "performance bonus: $X")
+8. Returns fields + per-field confidence scores + raw text preview
+
+## Key API Endpoints
+
+```
+POST /upload/contract  — Upload file to MinIO, returns file_key
+POST /upload/extract   — Parse PDF and extract fields with confidence scores
+POST /upload/confirm   — Save deal with extracted data + user overrides
+GET  /upload/download  — Generate presigned URL for contract file download
+```

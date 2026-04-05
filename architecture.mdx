@@ -1,0 +1,88 @@
+---
+title: "Architecture"
+description: "System design, service topology, and data flow."
+icon: "sitemap"
+---
+
+## Service Topology
+
+```
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+│  Frontend    │────▶│   Backend    │────▶│  PostgreSQL   │
+│  Vue 3/Vite │     │   FastAPI    │     │     16        │
+│  :3000      │     │   :8000      │     │   :5432       │
+└─────────────┘     └──────┬───────┘     └──────────────┘
+                           │
+                    ┌──────▼───────┐
+                    │    MinIO     │
+                    │  S3 Storage  │
+                    │  :9000/:9001 │
+                    └──────────────┘
+```
+
+All four services run on a single Docker bridge network (`nil-net`). The frontend proxies `/api/*` requests to the backend via Vite's dev server proxy.
+
+## Request Flow
+
+1. **Browser** hits `localhost:3000` → Vite serves the Vue SPA
+2. **API calls** from the SPA go to `/api/v1/*` → Vite proxies to `backend:8000`
+3. **Backend** validates JWT from `Authorization: Bearer` header
+4. **Database queries** run via SQLAlchemy async sessions over asyncpg
+5. **File operations** (contract upload/download) go through MinIO's S3 API with presigned URLs
+
+## Authentication Flow
+
+```
+Login → POST /auth/login → verify bcrypt hash → issue JWT access token (15min)
+                                               → set refresh token cookie (7 days)
+Each request → Bearer token → decode JWT → load User from DB → check role + tier
+```
+
+**Roles**: `admin`, `agreement_manager`, `read_only`
+**Tiers**: `standard`, `premium` (gates benchmark grid, peer group features)
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| UUIDs as primary keys | Prevents enumeration, simplifies multi-tenancy |
+| University-scoped queries | Every query filters by `user.university_id` for data isolation |
+| JSONB for AI extraction data | Stores raw extraction output for audit trail without rigid schema |
+| `percentile_cont` for benchmarks | PostgreSQL native function, no application-level stats needed |
+| pdfplumber for extraction | Runs locally, no external API dependency, works in Docker |
+| MinIO for file storage | S3-compatible API, presigned URLs for secure downloads, local dev friendly |
+| TanStack Query on frontend | Automatic cache invalidation, deduplication, background refetch |
+
+## File Structure
+
+```
+nil/
+├── docker-compose.yml          # 4-service orchestration
+├── .env                        # Environment variables
+├── backend/
+│   ├── Dockerfile
+│   ├── entrypoint.sh           # Runs create_all + seed on startup
+│   ├── app/
+│   │   ├── main.py             # FastAPI app, CORS, router mounting
+│   │   ├── config.py           # Pydantic settings from env
+│   │   ├── database.py         # Async engine + session factory
+│   │   ├── models/             # 13 SQLAlchemy models
+│   │   ├── routers/            # 11 API route modules (55 endpoints)
+│   │   ├── services/           # Email service, PDF extraction
+│   │   ├── auth/               # JWT utils, RBAC dependencies
+│   │   └── seed.py             # Idempotent demo data seeder
+│   └── tests/
+├── frontend/
+│   ├── Dockerfile
+│   ├── src/
+│   │   ├── pages/              # 15 page components
+│   │   ├── components/
+│   │   │   ├── layout/         # AppShell, TopNav, SearchBar, UserMenu
+│   │   │   └── shared/         # DataTable, KpiCard, StatusBadge, DealEditModal, etc.
+│   │   ├── stores/             # Pinia stores (auth, ui)
+│   │   ├── composables/        # TanStack Query hooks
+│   │   ├── router/             # Vue Router with auth guards
+│   │   └── lib/                # API client, utility functions
+│   └── tailwind.config.ts      # Custom design system tokens
+└── docs-site/                  # This documentation (Mintlify)
+```

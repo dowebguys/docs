@@ -1,97 +1,60 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "NIL Benchmark Platform"
+description: "A data platform for universities to report, track, and benchmark NIL deals across their athletic departments."
 ---
 
-## Setting up
+## What is NIL Benchmark?
 
-Get your documentation site up and running in minutes.
+NIL Benchmark is a full-stack platform that allows universities to securely report NIL deals involving their athletes, track budgets per sport, verify compliance, and benchmark anonymized data against conference and peer institutions.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get the platform running locally in under 5 minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    System design, tech stack, and how all the pieces connect.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Database Schema" icon="database" href="/database/schema">
+    Full breakdown of all 15 tables and relationships.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="API Reference" icon="code" href="/api/auth">
+    55 REST endpoints across 11 resource groups.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Core Capabilities
 
-Everything you need to create world-class documentation.
+- **NIL Deal Submission** — Upload contracts (PDF/DOCX), AI extracts fields automatically, user reviews and confirms
+- **Athlete Management** — Full roster with deal history, eligibility tracking, compliance checklists
+- **Budget Tracking** — Per-sport annual caps with real-time utilization bars and over-budget alerts
+- **Benchmarking** (Premium) — Compare your school vs conference vs custom peer groups with percentile rankings
+- **Compliance Reporting** — Verification queue, policy checks, audit log, expiring deal alerts
+- **Role-Based Access** — Admin, Agreement Manager, Read Only roles with Standard/Premium tier gating
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Tech Stack
 
-## Need inspiration?
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Frontend | Vue 3, TypeScript, Vite | SPA with Composition API |
+| UI | Tailwind CSS 3 | Custom design system (navy/gold/sky) |
+| State | Pinia + TanStack Query | Auth state + server data cache |
+| Backend | Python 3.12, FastAPI | Async REST API with auto OpenAPI docs |
+| ORM | SQLAlchemy 2.0 | Async PostgreSQL via asyncpg |
+| Database | PostgreSQL 16 | JSONB, window functions, `percentile_cont` |
+| Storage | MinIO (S3-compatible) | Contract PDF storage with presigned URLs |
+| Auth | JWT + bcrypt | Access/refresh tokens, RBAC + tier gating |
+| Extraction | pdfplumber + regex NLP | Real PDF text parsing — no external API |
+| Infra | Docker Compose | 4 services, single `docker compose up` |
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+## Demo Accounts
+
+| Email | Password | Role | Tier |
+|-------|----------|------|------|
+| `admin@bluemountain.edu` | `password123` | Admin | Premium |
+| `sarah.chen@bluemountain.edu` | `password123` | Agreement Manager | Premium |
+| `mike.t@bluemountain.edu` | `password123` | Agreement Manager | Standard |
+| `coach.w@bluemountain.edu` | `password123` | Read Only | Standard |
+
+## Seeded Demo Data
+
+The database ships with **2,320 athletes**, **1,852 deals**, **17 universities** across **10 real conferences** (SEC, ACC, Big Ten, etc.) with realistic value distributions by sport and position (Football QBs $50K-$500K, other positions scaled accordingly). Budget allocations, activity logs, athlete notes, and contract files in MinIO are all pre-populated.

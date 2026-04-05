@@ -1,0 +1,29 @@
+---
+title: "Reporting API"
+description: "Verification queue, policy checks, audit log, and expiring deal tracking."
+icon: "clipboard-list"
+---
+
+## Endpoints
+
+### GET /api/v1/reporting/stats
+
+Counts: `verified`, `pending_review`, `needs_review`, `overdue` (>7 days), `verification_rate`.
+
+### GET /api/v1/reporting/queue
+
+Returns all deals needing attention (pending_review or needs_review). Each item includes detected issues (missing comp type, missing end date, overdue days).
+
+### GET /api/v1/reporting/policy-checks
+
+**Critical issues:** Missing compensation type, missing end date, overdue >7 days (with counts).
+
+**Passing checks:** Total value present, athlete linked, agreement type specified (with X of Y counts).
+
+### GET /api/v1/reporting/audit-log
+
+Paginated, filterable activity log. **Query params:** `action_type`, `page`, `page_size`.
+
+### GET /api/v1/reporting/expiring
+
+Deals expiring within N days (default 60). Returns athlete name, brand, value, days remaining.

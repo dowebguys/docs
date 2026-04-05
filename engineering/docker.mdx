@@ -1,0 +1,51 @@
+---
+title: "Docker Setup"
+description: "Container architecture, networking, volumes, and health checks."
+icon: "docker"
+---
+
+## Services
+
+| Service | Image | Port | Health Check |
+|---------|-------|------|-------------|
+| `db` | postgres:16-alpine | 5432 | `pg_isready -U nil -d nil_benchmark` |
+| `minio` | minio/minio | 9000, 9001 | `curl http://localhost:9000/minio/health/live` |
+| `backend` | Custom (Python 3.12-slim) | 8000 | Depends on db + minio healthy |
+| `frontend` | Custom (Node 22-alpine) | 3000 | Depends on backend |
+
+## Startup Order
+
+1. `db` and `minio` start in parallel
+2. Health checks must pass before `backend` starts
+3. Backend runs `entrypoint.sh`: creates tables via `Base.metadata.create_all()`, seeds if `SEED_DB=true`
+4. `frontend` starts after backend is up
+
+## Volumes
+
+| Volume | Purpose |
+|--------|---------|
+| `pgdata` | PostgreSQL data persistence |
+| `miniodata` | MinIO object storage persistence |
+| `./backend:/app` | Backend source code (hot-reload) |
+| `./frontend:/app` + `/app/node_modules` | Frontend source (HMR), isolated node_modules |
+
+## Network
+
+All services on `nil-net` bridge network. Frontend proxies `/api/*` to `backend:8000` via Vite config.
+
+## Backend Dockerfile
+
+```dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+ENV PYTHONPATH=/app
+RUN apt-get update && apt-get install -y build-essential libpq-dev curl
+RUN pip install fastapi uvicorn sqlalchemy asyncpg psycopg2-binary \
+    alembic pydantic pydantic-settings python-jose bcrypt \
+    python-multipart minio httpx pdfplumber python-docx
+COPY . .
+ENTRYPOINT ["bash", "/app/entrypoint.sh"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+```
+
+Key: `PYTHONPATH=/app` is required because the volume mount overrides the installed package. `entrypoint.sh` handles migrations + seeding before starting uvicorn.
